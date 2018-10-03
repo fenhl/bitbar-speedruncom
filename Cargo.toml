@@ -11,3 +11,4 @@ test = false
 bench = false
 
 [dependencies]
+wrapped_enum = "*"
