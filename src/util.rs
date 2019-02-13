@@ -3,7 +3,7 @@ use std::{
     time::Duration
 };
 
-pub trait Increment {
+pub(crate) trait Increment {
     fn incr_by(&mut self, amount: Option<usize>);
 
     fn incr(&mut self) {
@@ -13,14 +13,11 @@ pub trait Increment {
 
 impl Increment for Option<usize> {
     fn incr_by(&mut self, amount: Option<usize>) {
-        match (*self, amount) {
-            (Some(ref mut val), Some(amount)) => { *val += amount; }
-            _ => { *self = None; }
-        }
+        *self = self.and_then(|value| amount.map(|amount| value + amount));
     }
 }
 
-pub trait NatJoin {
+pub(crate) trait NatJoin {
     fn natjoin(self) -> Option<String>;
 
     fn natjoin_fallback(self, fallback: impl ToString) -> String where Self: Sized {
@@ -43,7 +40,7 @@ impl<T: fmt::Display, I: IntoIterator<Item = T>> NatJoin for I {
     }
 }
 
-pub fn format_duration(duration: Duration) -> String {
+pub(crate) fn format_duration(duration: Duration) -> String {
     const ONE_HOUR: Duration = Duration::from_secs(3600);
     const ONE_MINUTE: Duration = Duration::from_secs(60);
 

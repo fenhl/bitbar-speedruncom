@@ -2,32 +2,36 @@ use std::{
     collections::HashMap,
     fs::File
 };
+use serde_derive::{
+    Deserialize,
+    Serialize
+};
 use serde_json;
 use xdg_basedir;
-use super::Error;
+use crate::Error;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
-pub struct CacheRun {
-    pub watched: bool
+pub(crate) struct CacheRun {
+    pub(crate) watched: bool
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(default)]
-pub struct Cache {
-    pub runs: HashMap<String, CacheRun>
+pub(crate) struct Cache {
+    pub(crate) runs: HashMap<String, CacheRun>
 }
 
 impl Cache {
-    pub fn new() -> Result<Cache, Error> {
+    pub(crate) fn new() -> Result<Cache, Error> {
         let dirs = xdg_basedir::get_data_home().into_iter().chain(xdg_basedir::get_data_dirs());
         Ok(dirs.filter_map(|cache_dir| File::open(cache_dir.join("bitbar/plugin-cache/srcomapi.json")).ok())
             .next().map_or(Ok(Cache::default()), serde_json::from_reader)?)
     }
 
-    pub fn save(self) -> Result<(), Error> {
+    pub(crate) fn save(self) -> Result<(), Error> {
         let dirs = xdg_basedir::get_data_home().into_iter().chain(xdg_basedir::get_data_dirs());
         for cache_dir in dirs {
             let cache_path = cache_dir.join("bitbar/plugin-cache/srcomapi.json");
