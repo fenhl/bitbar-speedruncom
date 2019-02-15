@@ -976,7 +976,7 @@ dependencies = [
 [[package]]
 name = "srcomapi"
 version = "0.0.1"
-source = "git+https://github.com/fenhl/srcomapi-rs#5ba34c9b18da2b13e3ba1aad98e39650c9b30c8c"
+source = "git+https://github.com/fenhl/srcomapi-rs#fd119cf845676ea5229481d723111201b50ade8a"
 dependencies = [
  "bigdecimal 0.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -986,6 +986,7 @@ dependencies = [
  "reqwest 0.9.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.87 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.87 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)",
  "wrapped_enum 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

@@ -1,4 +1,3 @@
-#![warn(trivial_casts)]
 #![deny(unused, unused_qualifications)]
 #![forbid(unused_import_braces)]
 
@@ -165,31 +164,6 @@ fn main() -> Result<(), Error> { //TODO handle errors in commands in a way that 
                 cache.runs.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default().watched = true;
                 cache.save()?;
             }
-            /*
-            "conf-var" => {
-                let mut config = Config::new()?;
-                let mode = args.next().ok_or(OtherError::MissingCliArg)?.parse()?;
-                match mode {
-                    VariableMode::Collapse => {
-                        config
-                            .games.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default()
-                            .categories.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default()
-                            .variables.insert(args.next().ok_or(OtherError::MissingCliArg)?, ConfigVariable {
-                                mode: VariableMode::Collapse
-                            });
-                    }
-                    VariableMode::Expand => {
-                        config
-                            .games.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default()
-                            .categories.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default()
-                            .variables.insert(args.next().ok_or(OtherError::MissingCliArg)?, ConfigVariable {
-                                mode: VariableMode::Expand
-                            });
-                    }
-                }
-                config.save()?;
-            }
-            */
             subcmd => { panic!("unknown subcommand: {:?}", subcmd); }
         }
     } else {

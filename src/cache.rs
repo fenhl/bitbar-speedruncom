@@ -11,15 +11,13 @@ use xdg_basedir;
 use crate::Error;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(default)]
+#[serde(rename_all = "camelCase", default)]
 pub(crate) struct CacheRun {
     pub(crate) watched: bool
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(default)]
+#[serde(rename_all = "camelCase", default)]
 pub(crate) struct Cache {
     pub(crate) runs: HashMap<String, CacheRun>
 }

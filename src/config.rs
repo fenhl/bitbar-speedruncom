@@ -18,17 +18,16 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(rename_all = "camelCase")]
-#[serde(default)]
+#[serde(rename_all = "camelCase", default)]
 pub(crate) struct ConfigCategory {
     pub(crate) src_categories: BTreeSet<String>,
     pub(crate) variable_state: BTreeMap<String, BTreeSet<String>>,
-    pub(crate) subcategories: BTreeSet<String>
+    pub(crate) subcategories: BTreeSet<String>,
+    pub(crate) levels: BTreeSet<String> //TODO read in model
 }
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(rename_all = "camelCase")]
-#[serde(default)]
+#[serde(rename_all = "camelCase", default)]
 pub(crate) struct ConfigGame {
     /// maps SRC game IDs to their ignored categories
     pub(crate) src_games: BTreeMap<String, Vec<String>>,
@@ -36,8 +35,7 @@ pub(crate) struct ConfigGame {
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(default)]
+#[serde(rename_all = "camelCase", default)]
 pub(crate) struct Config {
     pub(crate) api_key: Option<String>,
     pub(crate) bin: Option<PathBuf>,
