@@ -976,7 +976,7 @@ dependencies = [
 [[package]]
 name = "srcomapi"
 version = "0.0.1"
-source = "git+https://github.com/fenhl/srcomapi-rs#fd119cf845676ea5229481d723111201b50ade8a"
+source = "git+https://github.com/fenhl/srcomapi-rs#8f9b1cb2d83cc141815e2e0efbc089bdee3e77e3"
 dependencies = [
  "bigdecimal 0.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",

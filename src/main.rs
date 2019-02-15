@@ -177,7 +177,12 @@ fn main() -> Result<(), Error> { //TODO handle errors in commands in a way that 
                 match e {
                     Error::Api(srcomapi::Error::Reqwest(e)) => {
                         error_menu.push(MenuItem::new(format!("API returned error: {}", e)));
-                        if let Some(url) = e.url() { error_menu.push(MenuItem::new(format!("URL: {}", url))); }
+                        if let Some(url) = e.url() {
+                            error_menu.push(ContentItem::new(format!("URL: {}", url))
+                                .href(url.clone())
+                                .color("blue")?
+                                .into());
+                        }
                     }
                     Error::Other(OtherError::MissingConfig) => { error_menu.push(MenuItem::new(format!("missing or invalid configuration file"))); } //TODO better error message
                     Error::SerDe(e) => { error_menu.push(MenuItem::new(format!("error in config file: {}", e))); }
