@@ -61,11 +61,11 @@ pub(crate) fn format_duration(duration: Duration) -> String {
     };
     if duration.subsec_nanos() > 0 {
         if duration.subsec_nanos() % 1_000_000 == 0 {
-            result += &format!(".{:3}", duration.subsec_millis());
+            result += &format!(".{:03}", duration.subsec_millis());
         } else if duration.subsec_nanos() % 1_000 == 0 {
-            result += &format!(".{:6}", duration.subsec_micros());
+            result += &format!(".{:06}", duration.subsec_micros());
         } else {
-            result += &format!(".{:9}", duration.subsec_nanos());
+            result += &format!(".{:09}", duration.subsec_nanos());
         }
     }
     result + "s"
