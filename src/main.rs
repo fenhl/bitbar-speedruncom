@@ -44,9 +44,12 @@ const TROPHY: &str = "iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAABGdBTUEAAL
 #[derive(Debug)]
 pub enum OtherError { //TODO fix wrapped_enum macro and change visibility to pub(crate)
     InvalidBinPath,
-    InvalidVariableMode,
     MissingCliArg,
-    MissingConfig
+    MissingConfig,
+    NoSuchCategory {
+        game_name: String,
+        cat_name: String
+    }
 }
 
 wrapped_enum! {
@@ -191,6 +194,7 @@ fn main() -> Result<(), Error> { //TODO handle errors in commands in a way that 
                         }
                     }
                     Error::Other(OtherError::MissingConfig) => { error_menu.push(MenuItem::new(format!("missing or invalid configuration file"))); } //TODO better error message
+                    Error::Other(OtherError::NoSuchCategory { game_name, cat_name }) => { error_menu.push(MenuItem::new(format!("reference to unconfigured category {} in game {}", cat_name, game_name))); }
                     Error::SerDe(e) => { error_menu.push(MenuItem::new(format!("error in config file: {}", e))); }
                     e => { error_menu.push(MenuItem::new(format!("{:?}", e))); } //TODO handle separately
                 }
