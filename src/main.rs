@@ -19,11 +19,7 @@ use bitbar::{
 };
 use css_color_parser::ColorParseError;
 use srcomapi::{
-    client::{
-        Auth,
-        Client,
-        NoAuth
-    },
+    client,
     model::notification::Notification
 };
 use wrapped_enum::wrapped_enum;
@@ -77,9 +73,10 @@ fn bitbar() -> Result<Menu, Error> {
     let mut total = Some(0);
     let config = Config::new()?;
     let cache = Cache::new()?;
-    let client;
-    if let Some(key) = config.api_key {
-        let auth_client = Client::<Auth>::new(concat!("bitbar-speedruncom/", env!("CARGO_PKG_VERSION")), &key)?;
+    let client_builder = client::Builder::new(concat!("bitbar-speedruncom/", env!("CARGO_PKG_VERSION")))
+        .cache_timeout(None);
+    let client = if let Some(key) = config.api_key {
+        let auth_client = client_builder.auth(&key).build()?;
         let notifications = Notification::list::<Vec<_>>(&auth_client)?.into_iter().filter(|note| !note.read()).collect::<Vec<_>>();
         if !notifications.is_empty() {
             total.incr_by(Some(notifications.len()));
@@ -91,10 +88,10 @@ fn bitbar() -> Result<Menu, Error> {
                 );
             }
         }
-        client = auth_client.into();
+        auth_client.into()
     } else {
-        client = Client::<NoAuth>::new(concat!("bitbar-speedruncom/", env!("CARGO_PKG_VERSION")))?;
-    }
+        client_builder.build()?
+    };
     let runtime_cache = model::Cache::new(&client);
     for (game_name, game_config) in config.games {
         let game = Game::new(runtime_cache.clone(), game_name, game_config);
