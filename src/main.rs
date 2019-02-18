@@ -94,6 +94,7 @@ fn bitbar() -> Result<Menu, Error> {
         client_builder.build()?
     };
     let runtime_cache = model::Cache::new(&client);
+    let mut game_sections = Vec::default();
     for (game_name, game_config) in config.games {
         let game = Game::new(runtime_cache.clone(), game_name, game_config);
         let mut game_total = Some(0);
@@ -117,6 +118,7 @@ fn bitbar() -> Result<Menu, Error> {
             })
             .collect::<Result<Vec<_>, _>>()?;
         records.sort_by_key(|&(_, ref wr)| wr.time());
+        let fastest_time = records.first().map(|&(_, ref wr)| wr.time());
         for (cat, wr) in records {
             if !cache.runs.get(wr.id()).map_or(false, |cache_run| cache_run.watched) {
                 game_total.incr();
@@ -146,10 +148,14 @@ fn bitbar() -> Result<Menu, Error> {
         */
         if game_total.map_or(true, |t| t > 0) {
             total.incr_by(game_total);
-            items.extend(game_section);
+            let pos = game_sections.binary_search_by_key(&fastest_time, |&(time, _)| time).unwrap_or_else(|i| i);
+            game_sections.insert(pos, (fastest_time, game_section));
         }
     }
     //TODO check for any followed games not in config
+    for (_, game_section) in game_sections {
+        items.extend(game_section);
+    }
     Ok(if total.map_or(true, |total| total > 0) {
         iter::once(
             MenuItem::Content(ContentItem::new(total.map_or("?".into(), |total| total.to_string()))
