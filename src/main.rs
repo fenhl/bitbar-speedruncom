@@ -74,7 +74,8 @@ fn bitbar() -> Result<Menu, Error> {
     let config = Config::new()?;
     let cache = Cache::new()?;
     let client_builder = client::Builder::new(concat!("bitbar-speedruncom/", env!("CARGO_PKG_VERSION")))
-        .cache_timeout(None);
+        .cache_timeout(None)
+        .num_tries(4);
     let client = if let Some(key) = config.api_key {
         let auth_client = client_builder.auth(&key).build()?;
         let notifications = Notification::list::<Vec<_>>(&auth_client)?.into_iter().filter(|note| !note.read()).collect::<Vec<_>>();

@@ -973,7 +973,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "srcomapi"
 version = "0.0.1"
-source = "git+https://github.com/fenhl/srcomapi-rs#721e2174b56fa128b38b5b6f4686b5f8bee95625"
+source = "git+https://github.com/fenhl/srcomapi-rs#73bb0e0c577d2bb9ed3a7ffb0c0ea6e66b80025d"
 dependencies = [
  "bigdecimal 0.0.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
