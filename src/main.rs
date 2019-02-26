@@ -110,9 +110,13 @@ fn bitbar() -> Result<Menu, Error> {
         ];
         let mut records = game.categories()
             .into_iter()
-            //.filter_map(|cat| cat.wr().transpose().map(|wr| wr.map(|wr| (cat, wr)))) //TODO use when transpose is stabilized (#47338)
+            //.filter_map(|cat| cat.wr().transpose().map(|wr| wr.filter(|wr| !cache.runs.get(wr.id()).map_or(false, |cache_run| cache_run.watched)).map(|wr| (cat, wr)))) //TODO use when transpose is stabilized (#47338)
             .filter_map(|cat| match cat.wr() {
-                Ok(Some(wr)) => Some(Ok((cat, wr))),
+                Ok(Some(wr)) => if cache.runs.get(wr.id()).map_or(false, |cache_run| cache_run.watched) {
+                    None
+                } else {
+                    Some(Ok((cat, wr)))
+                },
                 Ok(None) => None,
                 Err(e) => Some(Err(e))
             })
@@ -120,24 +124,22 @@ fn bitbar() -> Result<Menu, Error> {
         records.sort_by_key(|&(_, ref wr)| wr.time());
         let fastest_time = records.first().map(|&(_, ref wr)| wr.time());
         for (cat, wr) in records {
-            if !cache.runs.get(wr.id()).map_or(false, |cache_run| cache_run.watched) {
-                game_total.incr();
-                let wr_item = ContentItem::new(format!("New WR in {}: {} by {}", cat, format_duration(wr.time()), wr.runners()?.natjoin_fallback("no one")));
-                game_section.push(if let Some(ref bin) = config.bin {
-                    wr_item.sub(vec![
-                        ContentItem::new("View Run")
-                            .href(wr.weblink().clone())
-                            .into(),
-                        ContentItem::new("Mark as Watched")
-                            .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "check", wr.id()])
-                            .refresh()
-                            .into()
-                        //TODO “mark as partially watched” submenu
-                    ])
-                } else {
-                    wr_item.href(wr.weblink().clone())
-                }.into());
-            }
+            game_total.incr();
+            let wr_item = ContentItem::new(format!("New WR in {}: {} by {}", cat, format_duration(wr.time()), wr.runners()?.natjoin_fallback("no one")));
+            game_section.push(if let Some(ref bin) = config.bin {
+                wr_item.sub(vec![
+                    ContentItem::new("View Run")
+                        .href(wr.weblink().clone())
+                        .into(),
+                    ContentItem::new("Mark as Watched")
+                        .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "check", wr.id()])
+                        .refresh()
+                        .into()
+                    //TODO “mark as partially watched” submenu
+                ])
+            } else {
+                wr_item.href(wr.weblink().clone())
+            }.into());
         }
         //TODO Unconfigured categories check
         /*
