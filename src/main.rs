@@ -169,16 +169,46 @@ fn bitbar() -> Result<Menu, Error> {
     })
 }
 
-fn main() -> Result<(), Error> { //TODO handle errors in commands in a way that makes them visible when invoked from BitBar
+fn notify(summary: impl fmt::Display, body: impl fmt::Display) -> ! {
+    //let _ = notify_rust::set_application(&notify_rust::get_bundle_identifier_or_default("BitBar")); //TODO uncomment when https://github.com/h4llow3En/mac-notification-sys/issues/8 is fixed
+    let _ = notify_rust::Notification::default()
+        .summary(&summary.to_string())
+        .sound_name("Funk")
+        .body(&body.to_string())
+        .show();
+    panic!("{}: {}", summary, body);
+}
+
+trait ResultExt {
+    type Ok;
+
+    fn notify(self, summary: impl fmt::Display) -> Self::Ok;
+}
+
+impl<T, E: fmt::Debug> ResultExt for Result<T, E> {
+    type Ok = T;
+
+    fn notify(self, summary: impl fmt::Display) -> T {
+        match self {
+            Ok(t) => t,
+            Err(e) => { notify(summary, format!("{:?}", e)); }
+        }
+    }
+}
+
+fn check(mut args: env::Args) -> Result<(), Error> {
+    let mut cache = Cache::new()?;
+    cache.runs.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default().watched = true;
+    cache.save()?;
+    Ok(())
+}
+
+fn main() {
     let mut args = env::args();
     let _ = args.next(); // ignore executable name
     if let Some(arg) = args.next() {
         match &arg[..] {
-            "check" => {
-                let mut cache = Cache::new()?;
-                cache.runs.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default().watched = true;
-                cache.save()?;
-            }
+            "check" => { check(args).notify("error in check cmd"); }
             subcmd => { panic!("unknown subcommand: {:?}", subcmd); }
         }
     } else {
@@ -195,7 +225,7 @@ fn main() -> Result<(), Error> { //TODO handle errors in commands in a way that 
                         if let Some(url) = e.url() {
                             error_menu.push(ContentItem::new(format!("URL: {}", url))
                                 .href(url.clone())
-                                .color("blue")?
+                                .color("blue").expect("failed to parse the color blue")
                                 .into());
                         }
                     }
@@ -208,5 +238,4 @@ fn main() -> Result<(), Error> { //TODO handle errors in commands in a way that 
             }
         }
     }
-    Ok(())
 }
