@@ -110,16 +110,11 @@ fn bitbar() -> Result<Menu, Error> {
         ];
         let mut records = game.categories()
             .into_iter()
-            //.filter_map(|cat| cat.wr().transpose().map(|wr| wr.filter(|wr| !cache.runs.get(wr.id()).map_or(false, |cache_run| cache_run.watched)).map(|wr| (cat, wr)))) //TODO use when transpose is stabilized (#47338)
-            .filter_map(|cat| match cat.wr() {
-                Ok(Some(wr)) => if cache.runs.get(wr.id()).map_or(false, |cache_run| cache_run.watched) {
-                    None
-                } else {
-                    Some(Ok((cat, wr)))
-                },
-                Ok(None) => None,
-                Err(e) => Some(Err(e))
-            })
+            .filter_map(|cat| cat.wr()
+                .map(|wr_result| wr_result
+                    .filter(|wr| !cache.runs.get(wr.id()).map_or(false, |cache_run| cache_run.watched))
+                    .map(|wr| (cat, wr)))
+                .transpose())
             .collect::<Result<Vec<_>, _>>()?;
         records.sort_by_key(|&(_, ref wr)| wr.time());
         let fastest_time = records.first().map(|&(_, ref wr)| wr.time());
