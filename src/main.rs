@@ -10,7 +10,8 @@ use std::{
     env,
     fmt,
     io,
-    iter
+    iter,
+    time::Duration
 };
 use bitbar::{
     ContentItem,
@@ -73,9 +74,12 @@ fn bitbar() -> Result<Menu, Error> {
     let mut total = Some(0);
     let config = Config::new()?;
     let cache = Cache::new()?;
-    let client_builder = client::Builder::new(concat!("bitbar-speedruncom/", env!("CARGO_PKG_VERSION")))
-        .cache_timeout(None)
-        .num_tries(4);
+    let mut client_builder = client::Builder::new(concat!("bitbar-speedruncom/", env!("CARGO_PKG_VERSION")))
+        .cache_timeout(Duration::from_secs(12 * 60 * 60)..Duration::from_secs(24 * 60 * 60));
+    if let Ok(cache) = xdg_basedir::get_cache_home() {
+        client_builder = client_builder.disk_cache(cache.join("bitbar/speedruncom.json"))?;
+    };
+    let client_builder = client_builder.num_tries(4);
     let client = if let Some(key) = config.api_key {
         let auth_client = client_builder.auth(&key).build()?;
         let notifications = Notification::list::<Vec<_>>(&auth_client)?.into_iter().filter(|note| !note.read()).collect::<Vec<_>>();
