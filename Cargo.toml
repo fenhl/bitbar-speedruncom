@@ -12,6 +12,7 @@ test = false
 bench = false
 
 [dependencies]
+chrono = "*"
 css-color-parser = "*"
 itertools = "*"
 notify-rust = "3"

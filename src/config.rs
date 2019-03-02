@@ -3,8 +3,7 @@ use std::{
         BTreeMap,
         BTreeSet
     },
-    fs::File,
-    path::PathBuf
+    fs::File
 };
 use serde_derive::{
     Deserialize,
@@ -38,7 +37,6 @@ pub(crate) struct ConfigGame {
 #[serde(rename_all = "camelCase", default)]
 pub(crate) struct Config {
     pub(crate) api_key: Option<String>,
-    pub(crate) bin: Option<PathBuf>,
     pub(crate) games: BTreeMap<String, ConfigGame>
 }
 

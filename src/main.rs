@@ -1,22 +1,28 @@
 #![deny(unused, unused_qualifications)]
 #![forbid(unused_import_braces)]
 
-mod cache;
 mod config;
+mod data;
 mod model;
 mod util;
 
 use std::{
-    env,
+    env::{
+        self,
+        current_exe
+    },
     fmt,
     io,
     iter,
-    time::Duration
 };
 use bitbar::{
     ContentItem,
     Menu,
     MenuItem
+};
+use chrono::{
+    Duration,
+    prelude::*
 };
 use css_color_parser::ColorParseError;
 use srcomapi::{
@@ -25,8 +31,8 @@ use srcomapi::{
 };
 use wrapped_enum::wrapped_enum;
 use crate::{
-    cache::Cache,
     config::Config,
+    data::Data,
     model::Game,
     util::{
         Increment,
@@ -73,9 +79,9 @@ fn bitbar() -> Result<Menu, Error> {
     let mut items = Vec::default();
     let mut total = Some(0);
     let config = Config::new()?;
-    let cache = Cache::new()?;
+    let data = Data::new()?;
     let mut client_builder = client::Builder::new(concat!("bitbar-speedruncom/", env!("CARGO_PKG_VERSION")))
-        .cache_timeout(Duration::from_secs(12 * 60 * 60)..Duration::from_secs(24 * 60 * 60));
+        .cache_timeout(Duration::hours(12)..Duration::hours(24));
     if let Ok(cache) = xdg_basedir::get_cache_home() {
         client_builder = client_builder.disk_cache(cache.join("bitbar/speedruncom.json"))?;
     };
@@ -97,10 +103,10 @@ fn bitbar() -> Result<Menu, Error> {
     } else {
         client_builder.build()?
     };
-    let runtime_cache = model::Cache::new(&client);
+    let cache = model::Cache::new(&client);
     let mut game_sections = Vec::default();
     for (game_name, game_config) in config.games {
-        let game = Game::new(runtime_cache.clone(), game_name, game_config);
+        let game = Game::new(cache.clone(), game_name, game_config);
         let mut game_total = Some(0);
         let mut game_section = vec![
             MenuItem::Sep,
@@ -116,7 +122,7 @@ fn bitbar() -> Result<Menu, Error> {
             .into_iter()
             .filter_map(|cat| cat.wr()
                 .map(|wr_result| wr_result
-                    .filter(|wr| !cache.runs.get(wr.id()).map_or(false, |cache_run| cache_run.watched))
+                    .filter(|wr| !data.runs.get(wr.id()).map_or(false, |run_data| run_data.watched || run_data.deferred.map_or(false, |deferred_until| deferred_until > Utc::now())))
                     .map(|wr| (cat, wr)))
                 .transpose())
             .collect::<Result<Vec<_>, _>>()?;
@@ -125,7 +131,7 @@ fn bitbar() -> Result<Menu, Error> {
         for (cat, wr) in records {
             game_total.incr();
             let wr_item = ContentItem::new(format!("New WR in {}: {} by {}", cat, format_duration(wr.time()), wr.runners()?.natjoin_fallback("no one")));
-            game_section.push(if let Some(ref bin) = config.bin {
+            game_section.push(if let Ok(bin) = current_exe() {
                 wr_item.sub(vec![
                     ContentItem::new("View Run")
                         .href(wr.weblink().clone())
@@ -133,8 +139,12 @@ fn bitbar() -> Result<Menu, Error> {
                     ContentItem::new("Mark as Watched")
                         .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "check", wr.id()])
                         .refresh()
-                        .into()
+                        .into(),
                     //TODO “mark as partially watched” submenu
+                    ContentItem::new("Defer until Tomorrow")
+                        .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id()])
+                        .refresh()
+                        .into()
                 ])
             } else {
                 wr_item.href(wr.weblink().clone())
@@ -196,9 +206,16 @@ impl<T, E: fmt::Debug> ResultExt for Result<T, E> {
 }
 
 fn check(mut args: env::Args) -> Result<(), Error> {
-    let mut cache = Cache::new()?;
-    cache.runs.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default().watched = true;
-    cache.save()?;
+    let mut data = Data::new()?;
+    data.runs.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default().watched = true;
+    data.save()?;
+    Ok(())
+}
+
+fn defer(mut args: env::Args) -> Result<(), Error> {
+    let mut data = Data::new()?;
+    data.runs.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default().deferred = Some(Utc::now() + Duration::days(1));
+    data.save()?;
     Ok(())
 }
 
@@ -208,6 +225,7 @@ fn main() {
     if let Some(arg) = args.next() {
         match &arg[..] {
             "check" => { check(args).notify("error in check cmd"); }
+            "defer" => { defer(args).notify("error in defer cmd"); }
             subcmd => { panic!("unknown subcommand: {:?}", subcmd); }
         }
     } else {
