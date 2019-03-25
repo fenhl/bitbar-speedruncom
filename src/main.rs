@@ -12,7 +12,11 @@ use std::{
         current_exe
     },
     fmt,
-    io,
+    fs::File,
+    io::{
+        self,
+        prelude::*
+    },
     iter,
 };
 use bitbar::{
@@ -25,6 +29,7 @@ use chrono::{
     prelude::*
 };
 use css_color_parser::ColorParseError;
+use serde_json::Value as Json;
 use srcomapi::{
     client,
     model::notification::Notification
@@ -83,7 +88,11 @@ fn bitbar() -> Result<Menu, Error> {
     let mut client_builder = client::Builder::new(concat!("bitbar-speedruncom/", env!("CARGO_PKG_VERSION")))
         .cache_timeout(Duration::hours(12)..Duration::hours(24));
     if let Ok(cache) = xdg_basedir::get_cache_home() {
-        client_builder = client_builder.disk_cache(cache.join("bitbar/speedruncom.json"))?;
+        let cache_path = cache.join("bitbar/speedruncom.json");
+        if File::open(&cache_path).map_err(Error::Io).and_then(|cache_file| serde_json::from_reader::<_, Json>(cache_file).map_err(Error::SerDe)).is_err() {
+            writeln!(File::create(&cache_path)?, "{{}}")?;
+        }
+        client_builder = client_builder.disk_cache(cache_path)?;
     };
     let client_builder = client_builder.num_tries(4);
     let client = if let Some(key) = config.api_key {
