@@ -27,3 +27,6 @@ git = "https://github.com/fenhl/rust-bitbar"
 
 [dependencies.srcomapi]
 git = "https://github.com/fenhl/srcomapi-rs"
+
+[dependencies.timespec]
+git = "https://github.com/fenhl/rust-timespec"

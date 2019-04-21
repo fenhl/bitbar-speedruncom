@@ -51,6 +51,7 @@ const TROPHY: &str = "iVBORw0KGgoAAAANSUhEUgAAACQAAAAkCAYAAADhAJiYAAAABGdBTUEAAL
 
 #[derive(Debug)]
 pub enum OtherError { //TODO fix wrapped_enum macro and change visibility to pub(crate)
+    EmptyTimespec,
     InvalidBinPath,
     MissingCliArg,
     MissingConfig,
@@ -76,7 +77,9 @@ wrapped_enum! {
         #[allow(missing_docs)]
         Other(OtherError),
         #[allow(missing_docs)]
-        SerDe(serde_json::Error)
+        SerDe(serde_json::Error),
+        #[allow(missing_docs)]
+        Timespec(timespec::Error)
     }
 }
 
@@ -153,6 +156,10 @@ fn bitbar() -> Result<Menu, Error> {
                     ContentItem::new("Defer until Tomorrow")
                         .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id()])
                         .refresh()
+                        .into(),
+                    ContentItem::new("Defer for a Week")
+                        .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id(), "r:7d"])
+                        .refresh()
                         .into()
                 ])
             } else {
@@ -223,7 +230,13 @@ fn check(mut args: env::Args) -> Result<(), Error> {
 
 fn defer(mut args: env::Args) -> Result<(), Error> {
     let mut data = Data::new()?;
-    data.runs.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default().deferred = Some(Utc::now() + Duration::days(1));
+    let mut run = data.runs.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default();
+    let mut args = args.peekable();
+    run.deferred = Some(if args.peek().is_some() {
+        timespec::next(args)?.ok_or(OtherError::EmptyTimespec)?
+    } else {
+        Utc::now() + Duration::days(1)
+    });
     data.save()?;
     Ok(())
 }
