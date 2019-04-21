@@ -1265,7 +1265,7 @@ dependencies = [
 [[package]]
 name = "timespec"
 version = "1.3.0"
-source = "git+https://github.com/fenhl/rust-timespec#5eb68f746d2ebcda16175432037b8f4357d7f112"
+source = "git+https://github.com/fenhl/rust-timespec#8d993b16d0d29ec16cac335a8d24aede9126dbe1"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
