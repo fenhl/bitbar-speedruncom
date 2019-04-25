@@ -32,7 +32,10 @@ use css_color_parser::ColorParseError;
 use serde_json::Value as Json;
 use srcomapi::{
     client,
-    model::notification::Notification
+    model::{
+        notification::Notification,
+        run::RunStatus
+    }
 };
 use wrapped_enum::wrapped_enum;
 use crate::{
@@ -148,6 +151,17 @@ fn bitbar() -> Result<Menu, Error> {
                     ContentItem::new("View Run")
                         .href(wr.weblink().clone())
                         .into(),
+                    MenuItem::new(match wr.date() {
+                        Some(date) => format!("Recorded {}", date),
+                        None => "Recorded in the Old Days".into()
+                    }),
+                    MenuItem::new(match wr.status() {
+                        RunStatus::New => "Not yet verified".into(),
+                        RunStatus::Verified { verify_date: Some(date), .. } => format!("Verified {}", date),
+                        RunStatus::Verified { verify_date: None, .. } => "Verified in the Old Days".into(),
+                        RunStatus::Rejected { .. } => "REJECTED".into()
+                    }),
+                    MenuItem::Sep,
                     ContentItem::new("Mark as Watched")
                         .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "check", wr.id()])
                         .refresh()
