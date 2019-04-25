@@ -44,7 +44,6 @@ use crate::{
     model::Game,
     util::{
         Increment,
-        NatJoin,
         format_duration
     }
 };
@@ -145,12 +144,17 @@ fn bitbar() -> Result<Menu, Error> {
         let fastest_time = records.first().map(|&(_, ref wr)| wr.time());
         for (cat, wr) in records {
             game_total.incr();
-            let wr_item = ContentItem::new(format!("New WR in {}: {} by {}", cat, format_duration(wr.time()), wr.runners()?.natjoin_fallback("no one")));
+            let wr_item = ContentItem::new(format!("New WR in {}: {}", cat, format_duration(wr.time())));
             game_section.push(if let Ok(bin) = current_exe() {
-                wr_item.sub(vec![
+                wr_item.sub(iter::once(
                     ContentItem::new("View Run")
                         .href(wr.weblink().clone())
-                        .into(),
+                        .into()
+                ).chain(
+                    wr.runners()?
+                        .into_iter()
+                        .map(|runner| MenuItem::new(format!("Runner: {}", runner)))
+                ).chain(vec![
                     MenuItem::new(match wr.date() {
                         Some(date) => format!("Recorded {}", date),
                         None => "Recorded in the Old Days".into()
@@ -175,7 +179,7 @@ fn bitbar() -> Result<Menu, Error> {
                         .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id(), "r:7d"])
                         .refresh()
                         .into()
-                ])
+                ]))
             } else {
                 wr_item.href(wr.weblink().clone())
             }.into());
