@@ -1,6 +1,7 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
+    convert::identity,
     fmt,
     iter::FromIterator,
     rc::Rc
@@ -25,7 +26,8 @@ use crate::{
     config::{
         ConfigCategory,
         ConfigGame
-    }
+    },
+    data::Data
 };
 
 pub(crate) struct Cache {
@@ -117,17 +119,27 @@ impl Category {
         self.config()?.levels.iter().map(|level_id| self.cache.borrow_mut().level(level_id)).collect()
     }
 
-    pub(crate) fn wr(&self) -> Result<Option<Run>, Error> {
+    pub(crate) fn watchable_wr(&self, data: &Data) -> Result<Option<Run>, Error> {
         if let Some(opt_run) = self.cache.borrow().wrs.get(&(self.game_name.clone(), self.name.clone())) { return Ok(opt_run.clone()); }
         let mut wrs = Vec::default();
         if self.config()?.variable_state.is_empty() {
             for src_cat in self.src_categories()? {
                 if src_cat.is_il() {
                     for level in self.levels()? {
-                        wrs.push((&level, &src_cat).wr()?);
+                        if let Some(wr) = (&level, &src_cat)
+                            .leaderboard::<Vec<_>>()?
+                            .into_iter()
+                            .filter(|run| !data.runs.get(run.id()).map_or(false, |run_data| run_data.unwatchable))
+                            .next()
+                        { wrs.push(wr); }
                     }
                 } else {
-                    wrs.push(src_cat.wr()?);
+                    if let Some(wr) = src_cat
+                        .leaderboard::<Vec<_>>()?
+                        .into_iter()
+                        .filter(|run| !data.runs.get(run.id()).map_or(false, |run_data| run_data.unwatchable))
+                        .next()
+                    { wrs.push(wr); }
                 }
             }
         } else {
@@ -138,10 +150,20 @@ impl Category {
             {
                 if src_cat.is_il() {
                     for level in self.levels()? {
-                        wrs.push((&level, &src_cat).filtered_wr(&Filter::from_iter(filter.clone()))?);
+                        if let Some(wr) = (&level, &src_cat)
+                            .filtered_leaderboard::<Vec<_>>(&Filter::from_iter(filter.clone()))?
+                            .into_iter()
+                            .filter(|run| !data.runs.get(run.id()).map_or(false, |run_data| run_data.unwatchable))
+                            .next()
+                        { wrs.push(wr); }
                     }
                 } else {
-                    wrs.push(src_cat.filtered_wr(&Filter::from_iter(filter))?);
+                    if let Some(wr) = src_cat
+                        .filtered_leaderboard::<Vec<_>>(&Filter::from_iter(filter))?
+                        .into_iter()
+                        .filter(|run| !data.runs.get(run.id()).map_or(false, |run_data| run_data.unwatchable))
+                        .next()
+                    { wrs.push(wr); }
                 }
             }
         }
@@ -150,9 +172,9 @@ impl Category {
             game_name: self.game_name.clone(),
             game_config: self.game_config.clone(),
             name: subcat_name.to_string()
-        }.wr()).collect::<Result<Vec<_>, _>>()?;
-        wrs.extend(sub_wrs);
-        let opt_run = wrs.into_iter().filter_map(|x| x).min_by_key(|run| run.time());
+        }.watchable_wr(data)).collect::<Result<Vec<_>, _>>()?;
+        wrs.extend(sub_wrs.into_iter().filter_map(identity));
+        let opt_run = wrs.into_iter().min_by_key(|run| run.time());
         self.cache.borrow_mut().wrs.insert((self.game_name.clone(), self.name.clone()), opt_run.clone());
         Ok(opt_run)
     }

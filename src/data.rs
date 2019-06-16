@@ -16,6 +16,8 @@ use crate::Error;
 pub(crate) struct RunData {
     #[serde(default)]
     pub(crate) deferred: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub(crate) unwatchable: bool,
     pub(crate) watched: bool
 }
 

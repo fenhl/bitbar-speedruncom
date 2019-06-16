@@ -134,7 +134,7 @@ fn bitbar() -> Result<Menu, Error> {
         ];
         let mut records = game.categories()
             .into_iter()
-            .filter_map(|cat| cat.wr()
+            .filter_map(|cat| cat.watchable_wr(&data)
                 .map(|wr_result| wr_result
                     .filter(|wr| !data.runs.get(wr.id()).map_or(false, |run_data| run_data.watched || run_data.deferred.map_or(false, |deferred_until| deferred_until > Utc::now())))
                     .map(|wr| (cat, wr)))
@@ -177,6 +177,10 @@ fn bitbar() -> Result<Menu, Error> {
                         .into(),
                     ContentItem::new("Defer for a Week")
                         .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id(), "r:7d"])
+                        .refresh()
+                        .into(),
+                    ContentItem::new("Mark as Unwatchable")
+                        .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "unwatchable", wr.id()])
                         .refresh()
                         .into()
                 ]))
@@ -259,6 +263,13 @@ fn defer(mut args: env::Args) -> Result<(), Error> {
     Ok(())
 }
 
+fn unwatchable(mut args: env::Args) -> Result<(), Error> {
+    let mut data = Data::new()?;
+    data.runs.entry(args.next().ok_or(OtherError::MissingCliArg)?).or_default().unwatchable = true;
+    data.save()?;
+    Ok(())
+}
+
 fn main() {
     let mut args = env::args();
     let _ = args.next(); // ignore executable name
@@ -266,6 +277,7 @@ fn main() {
         match &arg[..] {
             "check" => { check(args).notify("error in check cmd"); }
             "defer" => { defer(args).notify("error in defer cmd"); }
+            "unwatchable" => { unwatchable(args).notify("error in unwatchable cmd"); }
             subcmd => { panic!("unknown subcommand: {:?}", subcmd); }
         }
     } else {
