@@ -2,7 +2,10 @@ use std::{
     cell::RefCell,
     collections::HashMap,
     fmt,
-    iter::FromIterator,
+    iter::{
+        self,
+        FromIterator
+    },
     rc::Rc
 };
 use itertools::Itertools;
@@ -121,49 +124,44 @@ impl Category {
     pub(crate) fn watchable_wrs(&self, data: &Data) -> Result<Vec<Run>, Error> {
         if let Some(runs) = self.cache.borrow().wrs.get(&(self.game_name.clone(), self.name.clone())) { return Ok(runs.clone()); }
         let mut wrs = Vec::default();
-        if self.config()?.variable_state.is_empty() {
-            for src_cat in self.src_categories()? {
-                if src_cat.is_il() {
-                    for level in self.levels()? {
-                        if let Some(wr) = (&level, &src_cat)
-                            .leaderboard::<Vec<_>>()?
-                            .into_iter()
-                            .filter(|run| !data.runs.get(run.id()).map_or(false, |run_data| run_data.unwatchable))
-                            .next()
-                        { wrs.push(wr); }
-                    }
-                } else {
-                    if let Some(wr) = src_cat
-                        .leaderboard::<Vec<_>>()?
-                        .into_iter()
-                        .filter(|run| !data.runs.get(run.id()).map_or(false, |run_data| run_data.unwatchable))
-                        .next()
-                    { wrs.push(wr); }
-                }
-            }
+        let subcategories = if self.config()?.variable_state.is_empty() {
+            Box::new(self.src_categories()?.into_iter().map(|cat| (None, cat)))
         } else {
-            for (filter, src_cat) in self.config()?.variable_state.iter()
-                .map(|(var_id, values)| values.iter().map(move |value| (var_id, value)))
-                .multi_cartesian_product()
-                .cartesian_product(self.src_categories()?)
-            {
-                if src_cat.is_il() {
-                    for level in self.levels()? {
-                        if let Some(wr) = (&level, &src_cat)
-                            .filtered_leaderboard::<Vec<_>>(&Filter::from_iter(filter.clone()))?
-                            .into_iter()
-                            .filter(|run| !data.runs.get(run.id()).map_or(false, |run_data| run_data.unwatchable))
-                            .next()
-                        { wrs.push(wr); }
-                    }
+            Box::new(
+                self.config()?.variable_state.into_iter()
+                    .map(|(var_id, values)| values.into_iter().map(|value| (var_id.clone(), value)).collect::<Vec<_>>())
+                    .multi_cartesian_product()
+                    .map(|filter| Some(Filter::from_iter(filter)))
+                    .cartesian_product(self.src_categories()?)
+            ) as Box<dyn Iterator<Item = _>>
+        };
+        for (filter, src_cat) in subcategories {
+            let lbs: Box<dyn Iterator<Item = srcomapi::Result<Vec<Run>>>> = if src_cat.is_il() {
+                Box::new(self.levels()?.into_iter().map(|level| if let Some(ref filter) = filter {
+                    (&level, &src_cat).filtered_leaderboard::<Vec<_>>(filter)
                 } else {
-                    if let Some(wr) = src_cat
-                        .filtered_leaderboard::<Vec<_>>(&Filter::from_iter(filter))?
+                    (&level, &src_cat).leaderboard::<Vec<_>>()
+                }))
+            } else {
+                Box::new(iter::once(if let Some(filter) = filter {
+                    src_cat.filtered_leaderboard::<Vec<_>>(&filter)
+                } else {
+                    src_cat.leaderboard::<Vec<_>>()
+                })) as Box<dyn Iterator<Item = _>>
+            };
+            for lb in lbs {
+                wrs.extend({
+                    lb?
                         .into_iter()
                         .filter(|run| !data.runs.get(run.id()).map_or(false, |run_data| run_data.unwatchable))
-                        .next()
-                    { wrs.push(wr); }
-                }
+                        .scan(None, |fastest_time, run| match *fastest_time {
+                            Some(t) => if run.time() > t { None } else { Some(run) },
+                            None => {
+                                *fastest_time = Some(run.time());
+                                Some(run)
+                            }
+                        })
+                });
             }
         }
         let sub_wrss = self.config()?.subcategories.into_iter().map(|subcat_name| Category {

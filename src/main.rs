@@ -141,7 +141,7 @@ fn bitbar() -> Result<Menu, Error> {
                         None // don't show runs that are tied with watched runs
                     } else {
                         wrs_result.into_iter()
-                            .filter(|wr| !data.runs.get(wr.id()).map_or(false, |run_data| run_data.watched || run_data.deferred.map_or(false, |deferred_until| deferred_until > Utc::now())))
+                            .filter(|wr| !data.runs.get(wr.id()).map_or(false, |run_data| run_data.deferred.map_or(false, |deferred_until| deferred_until > Utc::now())))
                             .next()
                     }.map(|wr| (cat, wr))
                 })
