@@ -1,7 +1,6 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
-    convert::identity,
     fmt,
     iter::FromIterator,
     rc::Rc
@@ -35,7 +34,7 @@ pub(crate) struct Cache {
     src_categories: HashMap<String, SrcCategory>,
     src_games: HashMap<String, SrcGame>,
     levels: HashMap<String, Level>,
-    wrs: HashMap<(String, String), Option<Run>>
+    wrs: HashMap<(String, String), Vec<Run>>
 }
 
 impl Cache {
@@ -119,8 +118,8 @@ impl Category {
         self.config()?.levels.iter().map(|level_id| self.cache.borrow_mut().level(level_id)).collect()
     }
 
-    pub(crate) fn watchable_wr(&self, data: &Data) -> Result<Option<Run>, Error> {
-        if let Some(opt_run) = self.cache.borrow().wrs.get(&(self.game_name.clone(), self.name.clone())) { return Ok(opt_run.clone()); }
+    pub(crate) fn watchable_wrs(&self, data: &Data) -> Result<Vec<Run>, Error> {
+        if let Some(runs) = self.cache.borrow().wrs.get(&(self.game_name.clone(), self.name.clone())) { return Ok(runs.clone()); }
         let mut wrs = Vec::default();
         if self.config()?.variable_state.is_empty() {
             for src_cat in self.src_categories()? {
@@ -167,16 +166,22 @@ impl Category {
                 }
             }
         }
-        let sub_wrs = self.config()?.subcategories.into_iter().map(|subcat_name| Category {
+        let sub_wrss = self.config()?.subcategories.into_iter().map(|subcat_name| Category {
             cache: self.cache.clone(),
             game_name: self.game_name.clone(),
             game_config: self.game_config.clone(),
             name: subcat_name.to_string()
-        }.watchable_wr(data)).collect::<Result<Vec<_>, _>>()?;
-        wrs.extend(sub_wrs.into_iter().filter_map(identity));
-        let opt_run = wrs.into_iter().min_by_key(|run| run.time());
-        self.cache.borrow_mut().wrs.insert((self.game_name.clone(), self.name.clone()), opt_run.clone());
-        Ok(opt_run)
+        }.watchable_wrs(data)).collect::<Result<Vec<_>, _>>()?;
+        for sub_wrs in sub_wrss {
+            wrs.extend(sub_wrs);
+        }
+        let runs = if let Some(fastest_time) = wrs.iter().map(|run| run.time()).min() {
+            wrs.into_iter().filter(|run| run.time() == fastest_time).collect()
+        } else {
+            Vec::default()
+        };
+        self.cache.borrow_mut().wrs.insert((self.game_name.clone(), self.name.clone()), runs.clone());
+        Ok(runs)
     }
 }
 

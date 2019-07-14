@@ -135,10 +135,16 @@ fn bitbar() -> Result<Menu, Error> {
         ];
         let mut records = game.categories()
             .into_iter()
-            .filter_map(|cat| cat.watchable_wr(&data)
-                .map(|wr_result| wr_result
-                    .filter(|wr| !data.runs.get(wr.id()).map_or(false, |run_data| run_data.watched || run_data.deferred.map_or(false, |deferred_until| deferred_until > Utc::now())))
-                    .map(|wr| (cat, wr)))
+            .filter_map(|cat| cat.watchable_wrs(&data)
+                .map(|wrs_result| {
+                    if wrs_result.iter().any(|wr| data.runs.get(wr.id()).map_or(false, |run_data| run_data.watched)) {
+                        None // don't show runs that are tied with watched runs
+                    } else {
+                        wrs_result.into_iter()
+                            .filter(|wr| !data.runs.get(wr.id()).map_or(false, |run_data| run_data.watched || run_data.deferred.map_or(false, |deferred_until| deferred_until > Utc::now())))
+                            .next()
+                    }.map(|wr| (cat, wr))
+                })
                 .transpose())
             .collect::<Result<Vec<_>, _>>()?;
         records.sort_by_key(|&(_, ref wr)| wr.time());
