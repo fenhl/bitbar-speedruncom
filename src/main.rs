@@ -119,6 +119,7 @@ fn bitbar() -> Result<Menu, Error> {
     };
     let cache = model::Cache::new(&client);
     let mut game_sections = Vec::default();
+    let current_exe = current_exe();
     for (game_name, game_config) in config.games {
         let game = Game::new(cache.clone(), game_name, game_config);
         let mut game_total = Some(0);
@@ -145,12 +146,20 @@ fn bitbar() -> Result<Menu, Error> {
         for (cat, wr) in records {
             game_total.incr();
             let wr_item = ContentItem::new(format!("New WR in {}: {}", cat, format_duration(wr.time())));
-            game_section.push(if let Ok(bin) = current_exe() {
-                wr_item.sub(iter::once(
-                    ContentItem::new("View Run")
+            game_section.push(if let Ok(ref bin) = current_exe {
+                wr_item.sub({
+                    let videos = wr.videos().collect::<Vec<_>>();
+                    let single = videos.len() == 1;
+                    videos.into_iter().enumerate().map(move |(i, video)|
+                        ContentItem::new(if single { format!("Watch Run") } else { format!("Watch Part {}", i + 1) })
+                            .href(video.clone()) //TODO add support for opening certain websites in IINA
+                            .into()
+                    )
+                }.chain(iter::once(
+                    ContentItem::new("View Run Page")
                         .href(wr.weblink().clone())
                         .into()
-                ).chain(
+                )).chain(
                     wr.runners()?
                         .into_iter()
                         .map(|runner| MenuItem::new(format!("Runner: {}", runner)))
@@ -167,20 +176,20 @@ fn bitbar() -> Result<Menu, Error> {
                     }),
                     MenuItem::Sep,
                     ContentItem::new("Mark as Watched")
-                        .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "check", wr.id()])
+                        .command([bin.to_str().ok_or(OtherError::InvalidBinPath)?, "check", wr.id()])
                         .refresh()
                         .into(),
                     //TODO “mark as partially watched” submenu
                     ContentItem::new("Defer until Tomorrow")
-                        .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id()])
+                        .command([bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id()])
                         .refresh()
                         .into(),
                     ContentItem::new("Defer for a Week")
-                        .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id(), "r:7d"])
+                        .command([bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id(), "r:7d"])
                         .refresh()
                         .into(),
                     ContentItem::new("Mark as Unwatchable")
-                        .command(vec![bin.to_str().ok_or(OtherError::InvalidBinPath)?, "unwatchable", wr.id()])
+                        .command([bin.to_str().ok_or(OtherError::InvalidBinPath)?, "unwatchable", wr.id()])
                         .refresh()
                         .into()
                 ]))
