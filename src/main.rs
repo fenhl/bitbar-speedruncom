@@ -183,20 +183,20 @@ fn bitbar() -> Result<Menu, Error> {
                     MenuItem::Sep,
                     ContentItem::new("Mark as Watched")
                         .command([bin.to_str().ok_or(OtherError::InvalidBinPath)?, "check", wr.id()])
-                        .refresh()
+                        //.refresh() //TODO make sure multiple instances of bitbar-speedruncom running simultaneously works correctly, then uncomment this
                         .into(),
                     //TODO “mark as partially watched” submenu
                     ContentItem::new("Defer until Tomorrow")
                         .command([bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id()])
-                        .refresh()
+                        //.refresh() //TODO make sure multiple instances of bitbar-speedruncom running simultaneously works correctly, then uncomment this
                         .into(),
                     ContentItem::new("Defer for a Week")
                         .command([bin.to_str().ok_or(OtherError::InvalidBinPath)?, "defer", wr.id(), "r:7d"])
-                        .refresh()
+                        //.refresh() //TODO make sure multiple instances of bitbar-speedruncom running simultaneously works correctly, then uncomment this
                         .into(),
                     ContentItem::new("Mark as Unwatchable")
                         .command([bin.to_str().ok_or(OtherError::InvalidBinPath)?, "unwatchable", wr.id()])
-                        .refresh()
+                        //.refresh() //TODO make sure multiple instances of bitbar-speedruncom running simultaneously works correctly, then uncomment this
                         .into()
                 ]))
             } else {
