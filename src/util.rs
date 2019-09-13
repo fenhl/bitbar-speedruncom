@@ -1,7 +1,31 @@
-use std::{
-    fmt,
-    time::Duration
+use {
+    std::{
+        convert::Infallible,
+        fmt,
+        process::Command,
+        time::Duration
+    },
+    crate::Error
 };
+
+pub(crate) trait CommandStatusExt {
+    type Ok;
+
+    fn check(&mut self, name: &'static str) -> Result<Self::Ok, Error>;
+}
+
+impl CommandStatusExt for Command {
+    type Ok = ();
+
+    fn check(&mut self, name: &'static str) -> Result<(), Error> {
+        let status = self.status()?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(Error::CommandExit(name, status))
+        }
+    }
+}
 
 pub(crate) trait Increment {
     fn incr_by(&mut self, amount: Option<usize>);
@@ -36,6 +60,23 @@ impl<T: fmt::Display, I: IntoIterator<Item = T>> NatJoin for I {
                 let (last, head) = collection.split_last().unwrap();
                 Some(format!("{}, and {}", head.join(", "), last))
             }
+        }
+    }
+}
+
+pub(crate) trait ResultNeverExt {
+    type Ok;
+
+    fn never_unwrap(self) -> Self::Ok;
+}
+
+impl<T> ResultNeverExt for Result<T, Infallible> {
+    type Ok = T;
+
+    fn never_unwrap(self) -> T {
+        match self {
+            Ok(x) => x,
+            Err(never) => match never {}
         }
     }
 }

@@ -13,16 +13,17 @@ bench = false
 [dependencies]
 chrono = "*"
 css-color-parser = "*"
+derive_more = "*"
 itertools = "*"
 notify-rust = "3"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
-wrapped_enum = "*"
 xdg-basedir = "1"
 
 [dependencies.bitbar]
 git = "https://github.com/fenhl/rust-bitbar"
+features = ["base64"]
 
 [dependencies.srcomapi]
 git = "https://github.com/fenhl/srcomapi-rs"

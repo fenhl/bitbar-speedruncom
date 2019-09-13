@@ -1,15 +1,15 @@
-use std::{
-    collections::HashMap,
-    fs::File
+use {
+    std::{
+        collections::HashMap,
+        fs::File
+    },
+    chrono::prelude::*,
+    serde_derive::{
+        Deserialize,
+        Serialize
+    },
+    crate::Error
 };
-use chrono::prelude::*;
-use serde_derive::{
-    Deserialize,
-    Serialize
-};
-use serde_json;
-use xdg_basedir;
-use crate::Error;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", default)]

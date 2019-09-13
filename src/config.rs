@@ -1,19 +1,16 @@
-use std::{
-    collections::{
-        BTreeMap,
-        BTreeSet
+use {
+    std::{
+        collections::{
+            BTreeMap,
+            BTreeSet
+        },
+        fs::File
     },
-    fs::File
-};
-use serde_derive::{
-    Deserialize,
-    Serialize
-};
-use serde_json;
-use xdg_basedir;
-use crate::{
-    Error,
-    OtherError
+    serde_derive::{
+        Deserialize,
+        Serialize
+    },
+    crate::Error
 };
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -44,7 +41,7 @@ impl Config {
     pub(crate) fn new() -> Result<Config, Error> {
         let dirs = xdg_basedir::get_config_home().into_iter().chain(xdg_basedir::get_config_dirs());
         let file = dirs.filter_map(|cfg_dir| File::open(cfg_dir.join("bitbar/plugins/speedruncom.json")).ok())
-            .next().ok_or(OtherError::MissingConfig)?;
+            .next().ok_or(Error::MissingConfig)?;
         Ok(serde_json::from_reader(file)?)
     }
 

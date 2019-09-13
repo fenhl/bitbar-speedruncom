@@ -1,35 +1,36 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    fmt,
-    iter::{
-        self,
-        FromIterator
-    },
-    rc::Rc
-};
-use itertools::Itertools;
-use srcomapi::{
-    client::Client,
-    model::{
-        category::{
-            Category as SrcCategory,
-            ToLeaderboard
+use {
+    std::{
+        cell::RefCell,
+        collections::HashMap,
+        fmt,
+        iter::{
+            self,
+            FromIterator as _
         },
-        game::Game as SrcGame,
-        level::Level,
-        run::Run,
-        variable::Filter
-    }
-};
-use crate::{
-    Error,
-    OtherError,
-    config::{
-        ConfigCategory,
-        ConfigGame
+        rc::Rc
     },
-    data::Data
+    itertools::Itertools as _,
+    srcomapi::{
+        client::Client,
+        model::{
+            category::{
+                Category as SrcCategory,
+                ToLeaderboard as _
+            },
+            game::Game as SrcGame,
+            level::Level,
+            run::Run,
+            variable::Filter
+        }
+    },
+    crate::{
+        Error,
+        config::{
+            ConfigCategory,
+            ConfigGame
+        },
+        data::Data
+    }
 };
 
 pub(crate) struct Cache {
@@ -96,7 +97,7 @@ impl Game {
 }
 
 impl fmt::Display for Game {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.name.fmt(f)
     }
 }
@@ -110,7 +111,7 @@ pub(crate) struct Category {
 
 impl Category {
     fn config(&self) -> Result<ConfigCategory, Error> {
-        Ok(self.game_config.categories.get(&self.name).ok_or(OtherError::NoSuchCategory { game_name: self.game_name.clone(), cat_name: self.name.clone() })?.clone())
+        Ok(self.game_config.categories.get(&self.name).ok_or(Error::NoSuchCategory { game_name: self.game_name.clone(), cat_name: self.name.clone() })?.clone())
     }
 
     pub(crate) fn src_categories(&self) -> Result<Vec<SrcCategory>, Error> {
@@ -184,7 +185,7 @@ impl Category {
 }
 
 impl fmt::Display for Category {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.name.fmt(f)
     }
 }
