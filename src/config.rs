@@ -6,7 +6,7 @@ use {
         },
         fs::File
     },
-    serde_derive::{
+    serde::{
         Deserialize,
         Serialize
     },

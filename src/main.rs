@@ -82,7 +82,8 @@ pub(crate) enum Error {
         cat_name: String
     },
     SerDe(serde_json::Error),
-    Timespec(timespec::Error)
+    Timespec(timespec::Error),
+    UrlParse(url::ParseError)
 }
 
 impl From<Infallible> for Error {
@@ -108,11 +109,11 @@ fn bitbar() -> Result<Menu, Error> {
         let mut game_section = vec![
             MenuItem::Sep,
             MenuItem::Content(ContentItem::new(&game)
-                .sub(game.src_games()?.into_iter().map(|src_game| ContentItem::new(&src_game)
-                    .href(src_game.weblink().clone())
+                .sub(game.src_games()?.into_iter().map(|src_game| Ok(ContentItem::new(&src_game)
+                    .href(src_game.weblink().clone())?
                     .alt(ContentItem::new(src_game.id()))
                     .into()
-                ))
+                )).collect::<Result<Vec<_>, Error>>()?)
             ),
         ];
         let mut records = game.categories()
@@ -148,18 +149,19 @@ fn bitbar() -> Result<Menu, Error> {
                         Box::new(
                             videos.into_iter().enumerate().map(move |(i, video)|
                                 ContentItem::new(if single { format!("Watch Run") } else { format!("Watch Part {}", i + 1) })
-                                    .href(video.clone()) //TODO add support for opening certain websites in IINA
+                                    .href(video.clone()).expect("failed to convert URL to URL") //TODO add support for opening certain websites in IINA
                                     .into()
                             )
                         )
                     }
                 } else {
                     Box::new(iter::empty())
-                }.chain(iter::once(
-                    ContentItem::new("View Run Page")
-                        .href(wr.weblink().clone())
-                        .into()
-                )).chain(
+                }.chain({
+                    let item = ContentItem::new("View Run Page")
+                        .href(wr.weblink().clone())?
+                        .into();
+                    iter::once(item)
+                }).chain(
                     wr.runners()?
                         .into_iter()
                         .map(|runner| MenuItem::new(format!("Runner: {}", runner)))
@@ -194,7 +196,7 @@ fn bitbar() -> Result<Menu, Error> {
                         .into()
                 ]))
             } else {
-                wr_item.href(wr.weblink().clone())
+                wr_item.href(wr.weblink().clone())?
             }.into());
         }
         //TODO Unconfigured categories check
@@ -246,7 +248,7 @@ fn get_client(config: &Config) -> Result<(Client, Vec<MenuItem>, Option<usize>),
             items.push(MenuItem::Sep);
             for note in notifications {
                 items.push(ContentItem::new(&note)
-                    .href(note.weblink().clone())
+                    .href(note.weblink().clone())?
                     .into()
                 );
             }
@@ -352,7 +354,7 @@ fn main() {
                         error_menu.push(MenuItem::new(format!("API returned error: {}", e)));
                         if let Some(url) = e.url() {
                             error_menu.push(ContentItem::new(format!("URL: {}", url))
-                                .href(url.clone())
+                                .href(url.clone()).expect("failed to add link to error menu")
                                 .color("blue").expect("failed to parse the color blue")
                                 .into());
                         }

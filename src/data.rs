@@ -4,7 +4,7 @@ use {
         fs::File
     },
     chrono::prelude::*,
-    serde_derive::{
+    serde::{
         Deserialize,
         Serialize
     },
